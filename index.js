@@ -48,6 +48,7 @@ const MarketOrderIntentHandler = {
       },
       method: "get"
     }).then((resp) => {
+      resp = JSON.parse(resp);
       if(resp.securities == null){
         sym = null;
       }
@@ -73,13 +74,12 @@ const MarketOrderIntentHandler = {
       type: 'market',
       time_in_force: slots['time_in_force'].value,
     }).then((resp) => {
-      return `Market order of ${slots['side'].value} ${slots['quantity'].value} ${slots['stock'].value} sent.`;
+      return `Market order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} sent.`;
     }).catch((err) => {
-      return `Error: ${err.error}`;
+      return `Error: ${err.error.message}`;
     }).then((resp) => {
       return handlerInput.responseBuilder
       .speak(resp)
-      .withShouldEndSession(false)
       .getResponse();
     });
 
@@ -108,7 +108,7 @@ const StopOrLimitOrderIntentHandler = {
     const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
       oauth: accessToken,
-      paper: handlerInput.attributesManager.getSessionAttributes().paper
+      paper: true
     });
 
     // Lookup symbol by company name using Tradier Developer sandbox API (rate limited to 60 reqs per minute, unfortunately)
@@ -150,15 +150,12 @@ const StopOrLimitOrderIntentHandler = {
         time_in_force: slots["time_in_force"].value,
         limit_price: parseInt(slots['stop_limit_price'].value),
       }).then((resp) => {
-        return `${slots["stop_limit"].value} order of ${slots['side'].value} ${slots['quantity'].value} ${slots['stock'].value} at price ${slots['stop_limit_price'].value} sent.`;
+        return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} at a price of ${slots['stop_limit_price'].value} sent.`;
       }).catch((err) => {
-        return handlerInput.responseBuilder
-        .speak(`Error: ${err.error}`)
-        .getResponse();
+        return `Error: ${err.error.message}`
       }).then((resp) => {
         return handlerInput.responseBuilder
         .speak(resp)
-        .withShouldEndSession(false)
         .getResponse();
       });
       
@@ -173,11 +170,9 @@ const StopOrLimitOrderIntentHandler = {
         time_in_force: slots["time_in_force"].value,
         stop_price: parseInt(slots['stop_limit_price'].value)
       }).then((resp) => {
-        return `${slots["stop_limit"].value} order of ${slots['side'].value} ${slots['quantity'].value} ${slots['stock'].value} at price ${slots['stop_limit_price'].value} sent.`;
+        return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} at a price of ${slots['stop_limit_price'].value} sent.`;
       }).catch((err) => {
-        return handlerInput.responseBuilder
-        .speak(`Error: ${err.error}`)
-        .getResponse();
+        return `Error: ${err.error.message}`
       }).then((resp) => {
         return handlerInput.responseBuilder
         .speak(resp)
@@ -209,28 +204,33 @@ const OrdersIntentHandler = {
     // Declare Alpaca object
     const api = new Alpaca({
       oauth: accessToken,
-      paper: handlerInput.attributesManager.getSessionAttributes().paper
+      paper: true
     });
 
     // Lookup orders using Alpaca trade API and craft a response
-    const orders = await api.getOrders({
-      status: 'open'
+    let resp = await api.getOrders().then((orders) => {
+      console.log(orders);
+      if(orders.length > 0) {
+        var speakOutput = "Listing open orders. ";
+        orders.forEach((order,i) => {
+          let sym = order.symbol.split("").join(", ");
+          speakOutput += `Order ${i + 1}: ${sym}, ${order.qty}, ${order.type} order, ${order.side}, ${order.filled_qty} shares filled.  `;
+        });
+        return speakOutput
+      }
+      else {
+        return "No open orders.";
+      }
+    }).catch((err) => {
+      return `Error: ${err.error.message}`;
+    }).then((resp) => {
+      // Send verbal response back to user
+      return handlerInput.responseBuilder
+        .speak(resp)
+        .getResponse();
     });
-    if(orders.length > 0) {
-      var speakOutput = "Listing open orders. ";
-      orders.forEach((order,i) => {
-        let sym = order.symbol.split("").join(" ");
-        speakOutput += `Order ${i + 1}: ${sym} ${order.qty} ${order.type} ${order.side}, ${order.filled_qty} shares filled.  `;
-      });
-    }
-    else {
-      var speakOutput = "No open orders.";
-    }
 
-    // Send verbal response back to user
-    return handlerInput.responseBuilder
-      .speak(speakOutput)
-      .getResponse();
+    return resp;
   }
 };
 const PositionsIntentHandler = {
@@ -257,22 +257,28 @@ const PositionsIntentHandler = {
     });
 
     // Lookup positions and craft response
-    const positions = await api.getPositions();
-    if(positions.length > 0) {
-      var speakOutput = "Listing positions.  ";
-      positions.forEach((position,i) => {
-        let sym = position.symbol.split("").join(" ");
-        speakOutput += `Position ${i + 1}: ${sym} ${position.qty} ${position.side}, average entry price of ${parseFloat(position.avg_entry_price).toFixed(2)}.  `
-      })
-    }
-    else {
-      var speakOutput = "No open positions."
-    }
+    let resp = await api.getPositions().then((positions) => {
+      if(positions.length > 0) {
+        var speakOutput = "Listing positions.  ";
+        positions.forEach((position,i) => {
+          let sym = position.symbol.split("").join(", ");
+          speakOutput += `Position ${i + 1}: ${sym}, ${position.qty}, ${position.side} position, average entry price of ${parseFloat(position.avg_entry_price).toFixed(2)}.  `
+        })
+        return speakOutput;
+      }
+      else {
+        return "No open positions.";
+      }
+    }).catch((err) => {
+      return `Error: ${err.error.message}`
+    }).then((resp) => {
+      // Send verbal response to user
+      return handlerInput.responseBuilder
+        .speak(resp)
+        .getResponse();
+    });
 
-    // Send verbal response to user
-    return handlerInput.responseBuilder
-      .speak(speakOutput)
-      .getResponse();
+    return resp;
   }
 };
 const AccountIntentHandler = {
@@ -308,6 +314,7 @@ const AccountIntentHandler = {
       .getResponse();
   }
 };
+/* Doesn't work yet, will be functional once oauth works for data api
 const GetPriceIntentHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -361,8 +368,9 @@ const GetPriceIntentHandler = {
         .getResponse();
     }
 
-    const price = await api.getBars('minute',sym)
-    console.log(price);
+    var price = await api.getBars('minute',sym,{
+      limit: 1
+    })
     price = price[sym][0].c
     const speakOutput = `Price of ${sym.split("").join(" ")} is ${price}`
     // Send verbal response to user
@@ -370,7 +378,7 @@ const GetPriceIntentHandler = {
       .speak(speakOutput)
       .getResponse();
   }
-}
+} */
 const ClearIntentHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -394,6 +402,7 @@ const ClearIntentHandler = {
       paper: true
     });
 
+    // Clear all positions or orders
     var speakOutput = "";
     if(slots["position_order"].value == "positions") {
       let positions = await api.getPositions();
@@ -411,6 +420,8 @@ const ClearIntentHandler = {
       await api.cancelAllOrders();
       speakOutput = "Order cancels sent."
     }       
+
+    // Send verbal response to user
     return handlerInput.responseBuilder
       .speak(speakOutput)
       .getResponse();
@@ -442,12 +453,21 @@ const CancelOrderIntentHandler = {
       status: "open",
       limit: 1,
     });
-    await api.cancelOrder(order[0].id);
 
-    const speakOutput = "Order canceled."
-    return handlerInput.responseBuilder
-      .speak(speakOutput)
+    // Get the most recent order and cancel it
+    if(orders.length == 0){
+      return handlerInput.responseBuilder
+      .speak("No orders to cancel.")
       .getResponse();
+    } else {
+      await api.cancelOrder(orders[0].id);
+
+      // Send verbal response to user
+      const speakOutput = "Order canceled."
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .getResponse();
+    }
   }
 }
 // Out-of-box handlers
@@ -471,7 +491,7 @@ const CancelAndStopIntentHandler = {
         || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
   },
   handle(handlerInput) {
-    const speakOutput = 'Goodbye!';
+    const speakOutput = 'Alpaca skill is closing.  Goodbye!';
     return handlerInput.responseBuilder
       .speak(speakOutput)
       .getResponse();
@@ -496,7 +516,7 @@ const ErrorHandler = {
   },
   handle(handlerInput, error) {
     console.log(error);
-    const speakOutput = "Error occurred.";
+    const speakOutput = "Error occurred.  Please try again.";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
@@ -516,7 +536,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     PositionsIntentHandler,
     OrdersIntentHandler,
     AccountIntentHandler,
-    GetPriceIntentHandler,
+    /*GetPriceIntentHandler,*/
     ClearIntentHandler,
     CancelOrderIntentHandler,
     HelpIntentHandler,
