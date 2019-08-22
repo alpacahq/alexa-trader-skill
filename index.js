@@ -152,7 +152,7 @@ const StopOrLimitOrderIntentHandler = {
       }).then((resp) => {
         return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} at a price of ${slots['stop_limit_price'].value} sent.`;
       }).catch((err) => {
-        return `Error: ${err.error.message}`
+        return `Error: ${err.error.message}`;
       }).then((resp) => {
         return handlerInput.responseBuilder
         .speak(resp)
@@ -172,7 +172,7 @@ const StopOrLimitOrderIntentHandler = {
       }).then((resp) => {
         return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} at a price of ${slots['stop_limit_price'].value} sent.`;
       }).catch((err) => {
-        return `Error: ${err.error.message}`
+        return `Error: ${err.error.message}`;
       }).then((resp) => {
         return handlerInput.responseBuilder
         .speak(resp)
@@ -216,7 +216,7 @@ const OrdersIntentHandler = {
           let sym = order.symbol.split("").join(", ");
           speakOutput += `Order ${i + 1}: ${sym}, ${order.qty}, ${order.type} order, ${order.side}, ${order.filled_qty} shares filled.  `;
         });
-        return speakOutput
+        return speakOutput;
       }
       else {
         return "No open orders.";
@@ -262,15 +262,15 @@ const PositionsIntentHandler = {
         var speakOutput = "Listing positions.  ";
         positions.forEach((position,i) => {
           let sym = position.symbol.split("").join(", ");
-          speakOutput += `Position ${i + 1}: ${sym}, ${position.qty}, ${position.side} position, average entry price of ${parseFloat(position.avg_entry_price).toFixed(2)}.  `
-        })
+          speakOutput += `Position ${i + 1}: ${sym}, ${position.qty}, ${position.side} position, average entry price of ${parseFloat(position.avg_entry_price).toFixed(2)}.`;
+        });
         return speakOutput;
       }
       else {
         return "No open positions.";
       }
     }).catch((err) => {
-      return `Error: ${err.error.message}`
+      return `Error: ${err.error.message}`;
     }).then((resp) => {
       // Send verbal response to user
       return handlerInput.responseBuilder
@@ -306,7 +306,7 @@ const AccountIntentHandler = {
 
     // Get account from Alpaca trade API and craft response
     const account = await api.getAccount();
-    const speakOutput = `Account info: current equity is ${account.equity}, current cash is ${account.cash}, buying power is ${account.buying_power}, portfolio value is ${account.portfolio_value}, currency is ${account.currency}.`
+    const speakOutput = `Account info: current equity is ${account.equity}, current cash is ${account.cash}, buying power is ${account.buying_power}, portfolio value is ${account.portfolio_value}, currency is ${account.currency}.`;
     
     // Send verbal response to user
     return handlerInput.responseBuilder
@@ -413,12 +413,12 @@ const ClearIntentHandler = {
           side: (position.side == "long" ? "sell" : "buy"),
           type: "market",
           time_in_force: "day",
-        })
+        });
       });
       speakOutput = "Position clearing orders sent.";
     } else if (slots["position_order"].value == "orders"){
       await api.cancelAllOrders();
-      speakOutput = "Order cancels sent."
+      speakOutput = "Order cancels sent.";
     }       
 
     // Send verbal response to user
@@ -426,7 +426,7 @@ const ClearIntentHandler = {
       .speak(speakOutput)
       .getResponse();
   }
-}
+};
 const CancelOrderIntentHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -463,13 +463,13 @@ const CancelOrderIntentHandler = {
       await api.cancelOrder(orders[0].id);
 
       // Send verbal response to user
-      const speakOutput = "Order canceled."
+      const speakOutput = "Order canceled.";
       return handlerInput.responseBuilder
         .speak(speakOutput)
         .getResponse();
     }
   }
-}
+};
 // Out-of-box handlers
 const HelpIntentHandler = {
   canHandle(handlerInput) {
