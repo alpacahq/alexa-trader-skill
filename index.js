@@ -1,6 +1,5 @@
 const Alexa = require('ask-sdk-core');
 const Alpaca = require('@alpacahq/alpaca-trade-api');
-const request = require('./node_modules/request-promise');
 
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
@@ -37,44 +36,20 @@ const MarketOrderIntentHandler = {
       paper: true
     });
 
-    // Lookup symbol by company name using Tradier Developer sandbox API (rate limited to 60 reqs per minute, unfortunately)
-    let sym = "";
-    await request.get({
-      url: "https://sandbox.tradier.com/v1/markets/search",
-      qs: { 'q': slots['stock'].value },
-      headers: {
-        "Accept": "application/json",
-        "Authorization": "Bearer AUTH_TOKEN"
-      },
-      method: "get"
-    }).then((resp) => {
-      resp = JSON.parse(resp);
-      if(resp.securities == null){
-        sym = null;
-      }
-      else{
-        let security = resp.securities.security;
-        if(Array.isArray(security)){
-          sym = security[0].symbol;
-        } else {
-          sym = security.symbol;
-        }
-      }
-    });
-    if(sym == null){
-      return handlerInput.responseBuilder
-        .speak("Symbol could not be found.  Please try again.")
-        .getResponse();
-    }
+    // Format inputs
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
+    if(slots['side'].value == "by") slots['side'].value = "buy";
+    let tif = (slots['tif_one'].value.split('.').join("") + slots['tif_two'].value.split('.').join("") + slots['tif_three'].value.split('.').join("")).toLowerCase();
+
     // Submit the market order using the Alpaca trading api
     let resp = await api.createOrder({
       symbol: sym,
       qty: parseInt(slots['quantity'].value),
       side: slots['side'].value,
       type: 'market',
-      time_in_force: slots['time_in_force'].value,
+      time_in_force: tif,
     }).then((resp) => {
-      return `Market order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} sent.`;
+      return `Market order of ${slots['side'].value}, ${slots['quantity'].value}, ${sym.split("").join(", ")}, ${tif.split("").join(", ")}, sent.`;
     }).catch((err) => {
       return `Error: ${err.error.message}`;
     }).then((resp) => {
@@ -111,46 +86,22 @@ const StopOrLimitOrderIntentHandler = {
       paper: true
     });
 
-    // Lookup symbol by company name using Tradier Developer sandbox API (rate limited to 60 reqs per minute, unfortunately)
-    let sym = "";
-    await request.get({
-      url: "https://sandbox.tradier.com/v1/markets/search",
-      qs: { 'q': slots['stock'].value },
-      headers: {
-        "Accept": "application/json",
-        "Authorization": "Bearer AUTH_TOKEN"
-      },
-      method: "get"
-    }).then((resp) => {
-      resp = JSON.parse(resp);
-      if(resp.securities == null){
-        sym = null;
-      }
-      else{
-        let security = resp.securities.security;
-        if(Array.isArray(security)){
-          sym = security[0].symbol;
-        } else {
-          sym = security.symbol;
-        }
-      }
-    });
-    if(sym == null){
-      return handlerInput.responseBuilder
-        .speak("Symbol could not be found.  Please try again.")
-        .getResponse();
-    }
+    // Format inputs
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
+    if(slots['side'].value == "by") slots['side'].value = "buy";
+    let tif = (slots['tif_one'].value + slots['tif_two'].value + slots['tif_three'].value).toLowerCase();
+
     // Create stop/limit order with user inputs
-    if(slots["stop_limit"].value == "limit") {
+    if(slots["type"].value == "limit") {
       let resp = await api.createOrder({
         symbol: sym,
         qty: parseInt(slots['quantity'].value),
         side: slots['side'].value,
-        type: slots["stop_limit"].value,
-        time_in_force: slots["time_in_force"].value,
-        limit_price: parseInt(slots['stop_limit_price'].value),
+        type: slots["type"].value,
+        time_in_force: tif,
+        limit_price: parseInt(slots['price'].value),
       }).then((resp) => {
-        return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} at a price of ${slots['stop_limit_price'].value} sent.`;
+        return `${slots["type"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${sym.split("").join(", ")}, ${tif.split("").join(", ")}, at a ${slots["type"].value} price of ${slots['price'].value} sent.`;
       }).catch((err) => {
         return `Error: ${err.error.message}`;
       }).then((resp) => {
@@ -166,11 +117,11 @@ const StopOrLimitOrderIntentHandler = {
         symbol: sym,
         qty: parseInt(slots['quantity'].value),
         side: slots['side'].value,
-        type: slots["stop_limit"].value,
-        time_in_force: slots["time_in_force"].value,
-        stop_price: parseInt(slots['stop_limit_price'].value)
+        type: slots["type"].value,
+        time_in_force: tif,
+        stop_price: parseInt(slots['price'].value)
       }).then((resp) => {
-        return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${slots['stock'].value} at a price of ${slots['stop_limit_price'].value} sent.`;
+        return `${slots["type"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${sym.split("").join(", ")}, ${tif.split("").join(", ")}, at a ${slots['type'].value} price of ${slots['price'].value} sent.`;
       }).catch((err) => {
         return `Error: ${err.error.message}`;
       }).then((resp) => {
@@ -184,6 +135,60 @@ const StopOrLimitOrderIntentHandler = {
     }
   }
 };
+const StopLimitOrderIntentHandler = {
+  // Triggers when user wants to execute a stop limit order
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' 
+      && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StopLimitOrderIntent';
+  },
+  async handle(handlerInput) {
+    // Check for OAuth access token
+    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
+    if (accessToken == undefined){
+      var speechText = "You must have an Alpaca account to continue.";        
+      return handlerInput.responseBuilder
+        .speak(speechText)
+        .withLinkAccountCard()
+        .getResponse();
+    }
+
+    // Get user inputs and declare Alpaca object
+    const slots = handlerInput.requestEnvelope.request.intent.slots;
+    const api = new Alpaca({
+      oauth: accessToken,
+      paper: true
+    });
+
+    // Format inputs
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
+    if(slots['side'].value == "by") slots['side'].value = "buy";
+    let tif = (slots['tif_one'].value + slots['tif_two'].value + slots['tif_three'].value).toLowerCase();
+
+    // Create stop/limit order with user inputs
+    if(slots["stop_limit"].value == "limit") {
+      let resp = await api.createOrder({
+        symbol: sym,
+        qty: parseInt(slots['quantity'].value),
+        side: slots['side'].value,
+        type: "stop_limit",
+        time_in_force: tif,
+        limit_price: parseInt(slots['price_one'].value),
+        stop_price: parseInt(slots['price_two'].value),
+      }).then((resp) => {
+        return `${slots["stop_limit"].value} order of ${slots['side'].value}, ${slots['quantity'].value}, ${sym.split("").join(", ")}, ${tif.split("").join(", ")}, at a limit price of ${slots['price_one'].value} and a stop price of ${slots['price_two'].value} sent.`;
+      }).catch((err) => {
+        return `Error: ${err.error.message}`;
+      }).then((resp) => {
+        return handlerInput.responseBuilder
+        .speak(resp)
+        .getResponse();
+      });
+      
+      // Send verbal response back to user
+      return resp;
+    }
+  }
+}
 const OrdersIntentHandler = {
   // Triggers when user wants to look up orders
   canHandle(handlerInput) {
@@ -209,7 +214,6 @@ const OrdersIntentHandler = {
 
     // Lookup orders using Alpaca trade API and craft a response
     let resp = await api.getOrders().then((orders) => {
-      console.log(orders);
       if(orders.length > 0) {
         var speakOutput = "Listing open orders. ";
         orders.forEach((order,i) => {
@@ -337,42 +341,14 @@ const GetPriceIntentHandler = {
       oauth: accessToken,
       paper: true
     });
-
-    // Lookup symbol by company name using Tradier Developer sandbox API (rate limited to 60 reqs per minute, unfortunately)
-    let sym = "";
-    await request.get({
-      url: "https://sandbox.tradier.com/v1/markets/search",
-      qs: { 'q': slots['stock'].value },
-      headers: {
-        "Accept": "application/json",
-        "Authorization": "Bearer AUTH_TOKEN"
-      },
-      method: "get"
-    }).then((resp) => {
-      resp = JSON.parse(resp);
-      if(resp.securities == null){
-        sym = null;
-      }
-      else{
-        let security = resp.securities.security;
-        if(Array.isArray(security)){
-          sym = security[0].symbol;
-        } else {
-          sym = security.symbol;
-        }
-      }
-    });
-    if(sym == null){
-      return handlerInput.responseBuilder
-        .speak("Symbol could not be found.  Please try again.")
-        .getResponse();
-    }
-
+    
+    let sym = `${slots['symOne'].value ? slots['symOne'].value : ""}${slots['symTwo'].value ? slots['symTwo'].value : ""}${slots['symThree'].value ? slots['symThree'].value : ""}${slots['symFour'].value ? slots['symFour'].value : ""}${slots['symFive'].value ? slots['symFive'].value : ""}`;
+    sym = sym.toUpperCase();
     var price = await api.getBars('minute',sym,{
       limit: 1
     })
     price = price[sym][0].c
-    const speakOutput = `Price of ${sym.split("").join(" ")} is ${price}`
+    const speakOutput = `Price of ${sym.split("").join(", ")} is ${price}`
     // Send verbal response to user
     return handlerInput.responseBuilder
       .speak(speakOutput)
@@ -533,6 +509,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     LaunchRequestHandler,
     MarketOrderIntentHandler,
     StopOrLimitOrderIntentHandler,
+    StopLimitOrderIntentHandler,
     PositionsIntentHandler,
     OrdersIntentHandler,
     AccountIntentHandler,
