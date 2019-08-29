@@ -1,6 +1,9 @@
 const Alexa = require('ask-sdk-core');
 const Alpaca = require('@alpacahq/alpaca-trade-api');
 
+const keyId = "KEY_ID_HERE";
+const secretKey = "SECRET_KEY_HERE";
+
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -20,26 +23,23 @@ const MarketOrderIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'MarketOrderIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
     // Get user inputs and declare the Alpaca object
     const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
-    // Format inputs
-    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
+    /// Format inputs
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}\
+${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}\
+${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
+${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
+${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     if(slots['side'].value == "by") slots['side'].value = "buy";
-    let tif = (slots['tif_one'].value.split('.').join("") + slots['tif_two'].value.split('.').join("") + slots['tif_three'].value.split('.').join("")).toLowerCase();
+    let tif = slots['time_in_force'].value.toLowerCase();
+    
 
     // Submit the market order using the Alpaca trading api
     let resp = await api.createOrder({
@@ -69,27 +69,22 @@ const StopOrLimitOrderIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StopOrLimitOrderIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Get user inputs and declare Alpaca object
+    // Get user inputs and declare the Alpaca object
     const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
     // Format inputs
-    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}\
+${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}\
+${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
+${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
+${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     if(slots['side'].value == "by") slots['side'].value = "buy";
-    let tif = (slots['tif_one'].value + slots['tif_two'].value + slots['tif_three'].value).toLowerCase();
+    let tif = slots['time_in_force'].value.toLowerCase();
 
     // Create stop/limit order with user inputs
     if(slots["type"].value == "limit") {
@@ -142,27 +137,22 @@ const StopLimitOrderIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StopLimitOrderIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Get user inputs and declare Alpaca object
+    // Get user inputs and declare the Alpaca object
     const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
     // Format inputs
-    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}\
+${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}\
+${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
+${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
+${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     if(slots['side'].value == "by") slots['side'].value = "buy";
-    let tif = (slots['tif_one'].value + slots['tif_two'].value + slots['tif_three'].value).toLowerCase();
+    let tif = slots['time_in_force'].value.toLowerCase();
 
     // Create stop/limit order with user inputs
     if(slots["stop_limit"].value == "limit") {
@@ -196,19 +186,11 @@ const OrdersIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'OrdersIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Declare Alpaca object
+    // Get user inputs and declare the Alpaca object
+    const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
@@ -244,19 +226,11 @@ const PositionsIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PositionsIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Declare Alpaca object
+    // Get user inputs and declare the Alpaca object
+    const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
@@ -292,19 +266,11 @@ const AccountIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AccountIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Declare Alpaca object
+    // Get user inputs and declare the Alpaca object
+    const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
@@ -318,32 +284,25 @@ const AccountIntentHandler = {
       .getResponse();
   }
 };
-/* Doesn't work yet, will be functional once oauth works for data api
 const GetPriceIntentHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'GetPriceIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Get user inputs and declare Alpaca object
+    // Get user inputs and declare the Alpaca object
     const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
     
-    let sym = `${slots['symOne'].value ? slots['symOne'].value : ""}${slots['symTwo'].value ? slots['symTwo'].value : ""}${slots['symThree'].value ? slots['symThree'].value : ""}${slots['symFour'].value ? slots['symFour'].value : ""}${slots['symFive'].value ? slots['symFive'].value : ""}`;
-    sym = sym.toUpperCase();
+    let sym = `${slots['sym_one'].value ? slots['sym_one'].value.split('.').join("") : ""}\
+${slots['sym_two'].value ? slots['sym_two'].value.split('.').join("") : ""}\
+${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
+${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
+${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     var price = await api.getBars('minute',sym,{
       limit: 1
     })
@@ -354,27 +313,18 @@ const GetPriceIntentHandler = {
       .speak(speakOutput)
       .getResponse();
   }
-} */
+}
 const ClearIntentHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ClearIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Get user inputs and declare Alpaca object
+    // Get user inputs and declare the Alpaca object
     const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
@@ -409,19 +359,11 @@ const CancelOrderIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'CancelOrderIntent';
   },
   async handle(handlerInput) {
-    // Check for OAuth access token
-    const accessToken = handlerInput.requestEnvelope.context.System.user.accessToken;
-    if (accessToken == undefined){
-      var speechText = "You must have an Alpaca account to continue.";        
-      return handlerInput.responseBuilder
-        .speak(speechText)
-        .withLinkAccountCard()
-        .getResponse();
-    }
-
-    // Declare Alpaca object
+    // Get user inputs and declare the Alpaca object
+    const slots = handlerInput.requestEnvelope.request.intent.slots;
     const api = new Alpaca({
-      oauth: accessToken,
+      keyId: keyId,
+      secretKey: secretKey,
       paper: true
     });
 
@@ -513,7 +455,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     PositionsIntentHandler,
     OrdersIntentHandler,
     AccountIntentHandler,
-    /*GetPriceIntentHandler,*/
+    GetPriceIntentHandler,
     ClearIntentHandler,
     CancelOrderIntentHandler,
     HelpIntentHandler,
