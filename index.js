@@ -38,7 +38,7 @@ ${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
 ${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
 ${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     if(slots['side'].value == "by") slots['side'].value = "buy";
-    let tif = slots['time_in_force'].value.toLowerCase();
+    let tif = slots['time_in_force'].value.split(" ").join("").toLowerCase();
     
 
     // Submit the market order using the Alpaca trading api
@@ -84,7 +84,7 @@ ${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
 ${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
 ${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     if(slots['side'].value == "by") slots['side'].value = "buy";
-    let tif = slots['time_in_force'].value.toLowerCase();
+    let tif = slots['time_in_force'].value.split(" ").join("").toLowerCase();
 
     // Create stop/limit order with user inputs
     if(slots["type"].value == "limit") {
@@ -152,7 +152,7 @@ ${slots['sym_three'].value ? slots['sym_three'].value.split('.').join("") : ""}\
 ${slots['sym_four'].value ? slots['sym_four'].value.split('.').join("") : ""}\
 ${slots['sym_five'].value ? slots['sym_five'].value.split('.').join("") : ""}`.toUpperCase();
     if(slots['side'].value == "by") slots['side'].value = "buy";
-    let tif = slots['time_in_force'].value.toLowerCase();
+    let tif = slots['time_in_force'].value.split(" ").join("").toLowerCase();
 
     // Create stop/limit order with user inputs
     if(slots["stop_limit"].value == "limit") {
@@ -186,8 +186,7 @@ const OrdersIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'OrdersIntent';
   },
   async handle(handlerInput) {
-    // Get user inputs and declare the Alpaca object
-    const slots = handlerInput.requestEnvelope.request.intent.slots;
+    // Declare the Alpaca object
     const api = new Alpaca({
       keyId: keyId,
       secretKey: secretKey,
@@ -200,7 +199,7 @@ const OrdersIntentHandler = {
         var speakOutput = "Listing open orders. ";
         orders.forEach((order,i) => {
           let sym = order.symbol.split("").join(", ");
-          speakOutput += `Order ${i + 1}: ${sym}, ${order.qty}, ${order.type} order, ${order.side}, ${order.filled_qty} shares filled.  `;
+          speakOutput += `Order ${i + 1}: ${order.type} ${order.side}, ${sym}, ${order.filled_qty} out of ${order.qty} shares filled,  `;
         });
         return speakOutput;
       }
@@ -226,8 +225,7 @@ const PositionsIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PositionsIntent';
   },
   async handle(handlerInput) {
-    // Get user inputs and declare the Alpaca object
-    const slots = handlerInput.requestEnvelope.request.intent.slots;
+    // Declare the Alpaca object
     const api = new Alpaca({
       keyId: keyId,
       secretKey: secretKey,
@@ -240,7 +238,7 @@ const PositionsIntentHandler = {
         var speakOutput = "Listing positions.  ";
         positions.forEach((position,i) => {
           let sym = position.symbol.split("").join(", ");
-          speakOutput += `Position ${i + 1}: ${sym}, ${position.qty}, ${position.side} position, average entry price of ${parseFloat(position.avg_entry_price).toFixed(2)}.`;
+          speakOutput += `Position ${i + 1}: ${sym}, ${position.qty}, ${position.side} position, average entry price of ${parseFloat(position.avg_entry_price).toFixed(2)};`;
         });
         return speakOutput;
       }
@@ -266,8 +264,7 @@ const AccountIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AccountIntent';
   },
   async handle(handlerInput) {
-    // Get user inputs and declare the Alpaca object
-    const slots = handlerInput.requestEnvelope.request.intent.slots;
+    // Declare the Alpaca object
     const api = new Alpaca({
       keyId: keyId,
       secretKey: secretKey,
@@ -276,7 +273,7 @@ const AccountIntentHandler = {
 
     // Get account from Alpaca trade API and craft response
     const account = await api.getAccount();
-    const speakOutput = `Account info: current equity is ${account.equity}, current cash is ${account.cash}, buying power is ${account.buying_power}, portfolio value is ${account.portfolio_value}, currency is ${account.currency}.`;
+    const speakOutput = `Account info: current equity is ${account.equity} ${account.currency}, current cash is ${account.cash} ${account.currency}, buying power is ${account.buying_power} ${account.currency}, portfolio value is ${account.portfolio_value} ${account.currency}.`;
     
     // Send verbal response to user
     return handlerInput.responseBuilder
@@ -331,16 +328,7 @@ const ClearIntentHandler = {
     // Clear all positions or orders
     var speakOutput = "";
     if(slots["position_order"].value == "positions") {
-      let positions = await api.getPositions();
-      positions.forEach((position) => {
-        api.createOrder({
-          symbol: position.symbol,
-          qty: position.qty,
-          side: (position.side == "long" ? "sell" : "buy"),
-          type: "market",
-          time_in_force: "day",
-        });
-      });
+      await api.closeAllPositions()
       speakOutput = "Position clearing orders sent.";
     } else if (slots["position_order"].value == "orders"){
       await api.cancelAllOrders();
@@ -359,8 +347,7 @@ const CancelOrderIntentHandler = {
       && Alexa.getIntentName(handlerInput.requestEnvelope) === 'CancelOrderIntent';
   },
   async handle(handlerInput) {
-    // Get user inputs and declare the Alpaca object
-    const slots = handlerInput.requestEnvelope.request.intent.slots;
+    // Declare the Alpaca object
     const api = new Alpaca({
       keyId: keyId,
       secretKey: secretKey,
@@ -386,6 +373,36 @@ const CancelOrderIntentHandler = {
         .speak(speakOutput)
         .getResponse();
     }
+  }
+};
+const PerformanceIntentHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+      && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PerformanceIntent';
+  },
+  async handle(handlerInput) {
+    // Declare the Alpaca object
+    const api = new Alpaca({
+      keyId: keyId,
+      secretKey: secretKey,
+      paper: true
+    });
+
+    let positions = await api.getPositions();
+
+    let intra_pl = 0;
+    let speakOutput = "";
+    let account = await api.getAccount();
+    positions.forEach((position) => {
+      let pl = parseFloat(position.unrealized_intraday_pl).toFixed(2)
+      speakOutput += `Asset: ${position.symbol.split("").join(",")}, ${(pl < 0 ? "loss of" : "gain of")} ${Math.abs(pl)} ${account.currency}; `
+      intra_pl += parseFloat(position.unrealized_intraday_pl)
+    })
+    speakOutput += `Portfolio has ${(intra_pl < 0 ? "lost" : "gained")} ${intra_pl.toFixed(2)} ${account.currency} intraday, value currently at ${parseFloat(account.portfolio_value).toFixed(2)} ${account.currency}.`
+
+    return handlerInput.responseBuilder
+      .speak(speakOutput)
+      .getResponse();
   }
 };
 // Out-of-box handlers
@@ -458,6 +475,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     GetPriceIntentHandler,
     ClearIntentHandler,
     CancelOrderIntentHandler,
+    PerformanceIntentHandler,
     HelpIntentHandler,
     CancelAndStopIntentHandler,
     SessionEndedRequestHandler,
